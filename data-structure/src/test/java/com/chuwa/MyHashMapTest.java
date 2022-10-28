@@ -1,6 +1,51 @@
+package com.chuwa;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.powermock.reflect.Whitebox;
+
 import java.util.Set;
 
-public class MyTest {
+class MyTest {
+
+    @Test
+    public void testPutAndGet() {
+        MyHashMap<Integer, Integer> hmInteger = new MyHashMap<>();
+        MyHashMap<Integer, String> hmString = new MyHashMap<>();
+
+        hmInteger.put(1, 1);
+        hmInteger.put(7, 7);
+        hmInteger.put(321, 321);
+
+        Assertions.assertEquals(1, hmInteger.get(1));
+        Assertions.assertEquals(7, hmInteger.get(7));
+        Assertions.assertEquals(321, hmInteger.get(321));
+
+        hmString.put(1, "1");
+        hmString.put(7, "7");
+        hmString.put(321, "321");
+
+        Assertions.assertEquals("1", hmString.get(1));
+        Assertions.assertEquals("7", hmString.get(7));
+        Assertions.assertEquals("321", hmString.get(321));
+    }
+
+    @Test
+    void testGetHashCode() throws Exception {
+        // init data
+        MyHashMap<Integer, Integer> hmInteger = new MyHashMap<>();
+        hmInteger.put(1, 1);
+        hmInteger.put(9, 9);
+        hmInteger.put(321, 321);
+
+
+        int getHashCode = Whitebox.invokeMethod(hmInteger, "getHashCode", 1);
+        int getHashCode2 = Whitebox.invokeMethod(hmInteger, "getHashCode", 9);
+        System.out.println(getHashCode);
+        System.out.println(getHashCode2);
+        Assertions.assertEquals(getHashCode, getHashCode2);
+    }
+
     public static void main(String[] args) {
         MyHashMap map = new MyHashMap();
         map.put(1, 2);

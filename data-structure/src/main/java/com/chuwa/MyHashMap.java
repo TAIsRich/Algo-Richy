@@ -1,3 +1,5 @@
+package com.chuwa;
+
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -30,12 +32,12 @@ public class MyHashMap<K, V> {
      * 5. capacity can not add node if the size is
      * 6. 128 max capacity
      */
-    MyHashMap() {
+    public MyHashMap() {
         size = 0;
         myMap = new LinkedList[DEFAULT_SIZE];
         isResizeable = true;
     }
-    MyHashMap(int capacity) {
+    public MyHashMap(int capacity) {
         size = 0;
         myMap = new LinkedList[capacity];
         isResizeable = false;
@@ -58,11 +60,20 @@ public class MyHashMap<K, V> {
      *  retrieve value by key
      */
     public V get(K key) {
-        int idx = getHashCode(key);
-        LinkedList<Node> target = find(idx);
-        if (target == null) return null;
-        Node rst = findValue(key, target);
-        return rst == null ? null : (V) rst.val;
+        // find bucket
+        int bucket_idx = getHashCode(key);
+
+        // find the chain
+        LinkedList<Node> chain = findChain(bucket_idx);
+
+        if (chain == null) {
+            return null;
+        }
+
+        // find value in the chain
+        Node value = findNode(key, chain);
+
+        return value == null ? null : (V) value.val;
     }
 
     /**
@@ -70,44 +81,65 @@ public class MyHashMap<K, V> {
      *  put key-value pair into map
      */
     public boolean put(K key, V val) {
-        int idx = getHashCode(key);
-        LinkedList<Node> target = find(idx);
-        if (target == null) {
+        int bucket_idx = getHashCode(key);
+        LinkedList<Node> chain = findChain(bucket_idx);
 
-            myMap[idx] = new LinkedList<>();
-            myMap[idx].add(new Node(key, val));
+        // 如果还没有chain，则创建chain。（意味着该bucket还未被使用过）
+        if (chain == null) {
+            myMap[bucket_idx] = new LinkedList<>();
+            myMap[bucket_idx].add(new Node(key, val));
             size++;
             return true;
         }
-        Node node = findValue(key, target);
+
+        Node node = findNode(key, chain);
+        // 如果这是个新元素，不在chain里
         if (node == null) {
-            if (!resize()) return false;
-            target.add(new Node(key, val));
+            if (!resize()) {
+                return false;
+            }
+            // 在chain里添加新元素
+            chain.add(new Node(key, val));
             size++;
-        } else node.val = val;
+        } else {
+            // 如果不是新元素，则更新value即可
+            node.val = val;
+        }
+
         return true;
     }
 
     public boolean delete(K key) {
-        int idx = getHashCode(key);
+        int bucket_idx = getHashCode(key);
 
-        LinkedList<Node> target = find(idx);
-        if (target == null) return true;
-        for (int i = 0; i < target.size(); i++) {
-            if (target.get(i).key.equals(key)) {
-                target.remove(i);
+        LinkedList<Node> chain = findChain(bucket_idx);
+
+        if (chain == null) {
+            return true;
+        }
+
+        for (int i = 0; i < chain.size(); i++) {
+            if (chain.get(i).key.equals(key)) {
+                chain.remove(i);
                 size--;
                 return true;
             }
         }
+
         return false;
     }
 
     public boolean containsKey(K key) {
-        int idx = getHashCode(key);
-        LinkedList<Node> target = myMap[idx];
-        if (target == null) return false;
-        Node node = findValue(key, target);
+        int bucket_idx = getHashCode(key);
+        LinkedList<Node> chain = myMap[bucket_idx];
+
+        // 没有chain，则一定無该元素
+        if (chain == null) {
+            return false;
+        }
+
+        // 有chain，则看chain里是否有该元素key
+        Node node = findNode(key, chain);
         return node == null ? false : true;
     }
 
@@ -116,16 +148,19 @@ public class MyHashMap<K, V> {
     }
 
     public Set<Node> entrySet() {
-        Set<Node> rst = new HashSet<>();
+        Set<Node> entrySet = new HashSet<>();
+        // loop all buckets
         for (int i = 0; i < myMap.length; i++) {
-            LinkedList<Node> cur = myMap[i];
-            if (cur != null) {
-                for (Node node : cur) {
-                    rst.add(node);
+            LinkedList<Node> chain = myMap[i];
+            if (chain != null) {
+                // loop all elements in the chain
+                for (Node node : chain) {
+                    entrySet.add(node);
                 }
             }
         }
-        return rst;
+
+        return entrySet;
     }
 
     /**
@@ -135,15 +170,18 @@ public class MyHashMap<K, V> {
      */
     private int getHashCode(K key) {
         // 取余数
-        if (isResizeable) return (Integer) key % DEFAULT_SIZE;
+        if (isResizeable) {
+            return (Integer) key % DEFAULT_SIZE;
+        }
+
         return (Integer) key % myMap.length;
     }
 
-    private LinkedList<Node> find(int idx) {
+    private LinkedList<Node> findChain(int idx) {
         return myMap[idx];
     }
 
-    private Node findValue(K key, LinkedList<Node> target) {
+    private Node findNode(K key, LinkedList<Node> target) {
         for (Node node : target) {
             if (node.key.equals(key)) {
                 return node;
@@ -163,7 +201,10 @@ public class MyHashMap<K, V> {
     }
 
     public void increaseCapacity(int length) {
-        if (length >= MAX_CAPACITY) return;
+        if (length >= MAX_CAPACITY) {
+            return;
+        }
+
         final LinkedList<Node>[] oldMap = myMap;
         myMap = new LinkedList[length];
         size = 0;

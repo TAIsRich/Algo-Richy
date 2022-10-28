@@ -1,4 +1,6 @@
-public class Test {
+package com.chuwa;
+
+class HashCodeForStringTest {
     public static int getHashCode(String str)
     {
         char[] s = str.toCharArray();
